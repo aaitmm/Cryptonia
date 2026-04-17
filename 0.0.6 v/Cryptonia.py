@@ -11,7 +11,7 @@ from config import WINDOW_WIDTH, WINDOW_HEIGHT, FPS, BACKGROUND_COLOR, TEXT_COLO
 from trading import LineChart
 
 class GameState:
-    MAIN_MENU = "main_menu"
+    MAIN_MENU = "main_menu"cp -r Cryptonia/* Cryptonia_temp/
     EARN_SCREEN = "earn_screen"
     TRADING_SCREEN = "trading_screen"
     CASINO_SCREEN = "casino_screen"
@@ -3038,3 +3038,6 @@ class CryptoClicker:
 if __name__ == "__main__":
     game = CryptoClicker()
     game.run()
+
+
+a = "тестовый commit"
