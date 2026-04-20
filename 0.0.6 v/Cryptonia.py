@@ -192,7 +192,15 @@ class CryptoClicker:
         
         self.toast_messages = []
         
-        # Создание UI элементов
+        # Crash screen multiplier animation
+        self.crash_multiplier = 1.01
+        self.crash_multiplier_speed = 0.001
+        self.crash_multiplier_acceleration = 1.02
+        self.crash_multiplier_active = False
+        self.crash_max_stop_time = random.uniform(3.0, 8.0)
+        self.crash_current_time = 0.0
+        
+        # Creating UI elements
         self.create_main_menu()
         self.create_earn_screen()
         self.create_casino_screen()
@@ -1069,6 +1077,13 @@ class CryptoClicker:
         self.hide_casino_screen()
         self.hide_trading_screen()
         
+        # Reset and start multiplier
+        self.crash_multiplier = 1.01
+        self.crash_multiplier_speed = 0.001
+        self.crash_multiplier_active = True
+        self.crash_max_stop_time = random.uniform(3.0, 8.0)
+        self.crash_current_time = 0.0
+        
         self.current_state = GameState.CRASH_SCREEN
 
     def render_crash_screen(self):
@@ -1077,15 +1092,26 @@ class CryptoClicker:
         self.screen.fill((220, 20, 60))
         
         # Рисуем квадрат слева
-        square_size = 400
-        square_x = 100
+        square_size = 200
+        square_x = 50
         square_y = (WINDOW_HEIGHT - square_size) // 2
         pygame.draw.rect(self.screen, (255, 255, 255), (square_x, square_y, square_size, square_size))
         
+        # Draw multiplier in center of square (black color)
+        if self.crash_multiplier_active:
+            multiplier_text = f"{self.crash_multiplier:.2f}x"
+        else:
+            multiplier_text = "1.00x"
+        
+        multiplier_font = pygame.font.Font(None, 48)
+        multiplier_surface = multiplier_font.render(multiplier_text, True, (0, 0, 0))
+        multiplier_rect = multiplier_surface.get_rect(center=(square_x + square_size//2, square_y + square_size//2))
+        self.screen.blit(multiplier_surface, multiplier_rect)
+        
         # Добавляем текст "CRASH" в центре
-        crash_font = pygame.font.Font(None, 72)
-        crash_text = crash_font.render("", True, (255, 255, 255))
-        crash_rect = crash_text.get_rect(center=(WINDOW_WIDTH//2, WINDOW_HEIGHT//2))
+        crash_font = pygame.font.Font(None, 54)
+        crash_text = crash_font.render("CRASH", True, (255, 255, 255))
+        crash_rect = crash_text.get_rect(center=(WINDOW_WIDTH//2, WINDOW_HEIGHT//10s))
         self.screen.blit(crash_text, crash_rect)
         
         # Добавляем подсказку для возврата
@@ -1093,10 +1119,6 @@ class CryptoClicker:
         hint_text = hint_font.render("", True, (255, 255, 255))
         hint_rect = hint_text.get_rect(center=(WINDOW_WIDTH//2, WINDOW_HEIGHT//2 + 60))
         self.screen.blit(hint_text, hint_rect)
-
-    
-
-            
 
     def set_trading_symbol(self, symbol: str):
         """Смена активного символа без сброса данных графика"""
@@ -1145,7 +1167,7 @@ class CryptoClicker:
                 'margin': 0.0,
                 'entry_price': 0.0,
                 'leverage': leverage,
-                'liquidated': False,
+                'liqяuidated': False,
                 'side': side
             }
         # Если уже есть позиция и другое плечо — используем текущее плечо позиции
@@ -2222,6 +2244,23 @@ class CryptoClicker:
         # Анимация монет — только в главном меню
         if self.current_state == GameState.MAIN_MENU:
             self.update_coins(time_delta)
+        
+        # Update crash multiplier animation
+        if self.current_state == GameState.CRASH_SCREEN and self.crash_multiplier_active:
+            self.crash_current_time += time_delta
+            
+            # Check if should stop randomly
+            if self.crash_current_time >= self.crash_max_stop_time:
+                self.crash_multiplier_active = False
+                self.crash_current_time = 0.0
+            else:
+                # Accelerate the multiplier
+                self.crash_multiplier_speed *= self.crash_multiplier_acceleration
+                self.crash_multiplier += self.crash_multiplier_speed * time_delta
+                
+                # Cap at reasonable maximum
+                if self.crash_multiplier > 10.0:
+                    self.crash_multiplier = 10.0
         # Обновление графиков — в Trading обновляем сразу оба символа,
         # чтобы неактивный тоже продолжал рисовать курс
         if self.current_state == GameState.TRADING_SCREEN:
