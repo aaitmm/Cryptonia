@@ -11,10 +11,11 @@ from config import WINDOW_WIDTH, WINDOW_HEIGHT, FPS, BACKGROUND_COLOR, TEXT_COLO
 from trading import LineChart
 
 class GameState:
-    MAIN_MENU = "main_menu"cp -r Cryptonia/* Cryptonia_temp/
+    MAIN_MENU = "main_menu" 
     EARN_SCREEN = "earn_screen"
     TRADING_SCREEN = "trading_screen"
     CASINO_SCREEN = "casino_screen"
+    CRASH_SCREEN = "crash_screen"
 
 class Upgrade:
     def __init__(self, cost, multiplier, image_name):
@@ -408,6 +409,13 @@ class CryptoClicker:
         self.casino_button = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect((WINDOW_WIDTH//2 - 150, 410), (300, 60)),  
             text="Casino",
+            manager=self.ui_manager
+        )
+        
+        # Кнопка Crash
+        self.crash_button = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect((WINDOW_WIDTH//2 - 150, 490), (300, 60)),  
+            text="Crash",
             manager=self.ui_manager
         )
         
@@ -851,6 +859,7 @@ class CryptoClicker:
         self.earn_button.hide()
         self.trading_button.hide()
         self.casino_button.hide()
+        self.crash_button.hide()
         if hasattr(self, 'withdraw_button'): self.withdraw_button.hide()
 
     def hide_earn_screen(self):
@@ -972,6 +981,7 @@ class CryptoClicker:
         self.earn_button.show()
         self.trading_button.show()
         self.casino_button.show()
+        self.crash_button.show()
         if hasattr(self, 'withdraw_button'): self.withdraw_button.show()
         
         self.current_state = GameState.MAIN_MENU
@@ -1051,6 +1061,38 @@ class CryptoClicker:
         self.history_button.show()
 
         self.current_state = GameState.TRADING_SCREEN
+
+    def show_crash_screen(self):
+        """Показать экран Crash с квадратом слева"""
+        self.hide_main_menu()
+        self.hide_earn_screen()
+        self.hide_casino_screen()
+        self.hide_trading_screen()
+        
+        self.current_state = GameState.CRASH_SCREEN
+
+    def render_crash_screen(self):
+        """Отрисовка экрана Crash с квадратом слева"""
+        # Заполняем фон красным цветом (эффект краша)
+        self.screen.fill((220, 20, 60))
+        
+        # Рисуем квадрат слева
+        square_size = 400
+        square_x = 100
+        square_y = (WINDOW_HEIGHT - square_size) // 2
+        pygame.draw.rect(self.screen, (255, 255, 255), (square_x, square_y, square_size, square_size))
+        
+        # Добавляем текст "CRASH" в центре
+        crash_font = pygame.font.Font(None, 72)
+        crash_text = crash_font.render("", True, (255, 255, 255))
+        crash_rect = crash_text.get_rect(center=(WINDOW_WIDTH//2, WINDOW_HEIGHT//2))
+        self.screen.blit(crash_text, crash_rect)
+        
+        # Добавляем подсказку для возврата
+        hint_font = pygame.font.Font(None, 36)
+        hint_text = hint_font.render("", True, (255, 255, 255))
+        hint_rect = hint_text.get_rect(center=(WINDOW_WIDTH//2, WINDOW_HEIGHT//2 + 60))
+        self.screen.blit(hint_text, hint_rect)
 
     
 
@@ -1542,6 +1584,10 @@ class CryptoClicker:
                     pass
                 self.running = False
             
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE and self.current_state == GameState.CRASH_SCREEN:
+                    self.show_main_menu()
+            
             if event.type == pygame.USEREVENT and hasattr(event, 'user_type') and event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                 if getattr(event, 'ui_element', None) == self.earn_button:
                     self.show_earn_screen()
@@ -1551,6 +1597,9 @@ class CryptoClicker:
                 
                 elif getattr(event, 'ui_element', None) == self.casino_button:
                     self.show_casino_screen()
+                
+                elif getattr(event, 'ui_element', None) == self.crash_button:
+                    self.show_crash_screen()
                 
                 elif getattr(event, 'ui_element', None) == self.back_button:
                     self.show_main_menu()
@@ -2897,6 +2946,8 @@ class CryptoClicker:
             self.render_casino_screen()
         elif self.current_state == GameState.TRADING_SCREEN:
             self.render_trading_screen()
+        elif self.current_state == GameState.CRASH_SCREEN:
+            self.render_crash_screen()
         self.ui_manager.draw_ui(self.screen)
         pygame.display.flip()
 
@@ -2933,7 +2984,7 @@ class CryptoClicker:
             save_dir = None
 
         if not save_dir:
-            # Последний фолбэк — рядом с исполняемым файлом, но в подкаталоге
+            # Последний резерв (фолбек) — рядом с исполняемым файлом, но в подкаталоге
             try:
                 base_dir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
             except Exception:
@@ -3040,4 +3091,3 @@ if __name__ == "__main__":
     game.run()
 
 
-a = "тестовый commit"
