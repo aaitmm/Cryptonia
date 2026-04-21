@@ -205,6 +205,7 @@ class CryptoClicker:
         self.create_earn_screen()
         self.create_casino_screen()
         self.create_trading_screen()
+        self.create_crash_screen()
         # Загрузка сохранения перед показом меню
         try:
             self.load_game()
@@ -1070,6 +1071,50 @@ class CryptoClicker:
 
         self.current_state = GameState.TRADING_SCREEN
 
+    def create_crash_screen(self):
+        """Создание элементов экрана Crash"""
+        # Позиция кнопок справа от квадрата
+        button_width = 120
+        button_height = 50
+        button_x = 450  # Справа от квадрата (квадрат начинается с x=75 и имеет размер 300)
+        button_y_start = 250  # Начальная позиция Y
+        
+        # Кнопка "go!"
+        self.crash_go_button = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect((button_x, button_y_start), (button_width, button_height)),
+            text="go!",
+            manager=self.ui_manager
+        )
+
+
+        self.crash_go_button.colours['normal_bg'] = pygame.Color(255, 255, 0)
+        self.crash_go_button.rebuild()
+        
+        # Кнопка "stop"
+        self.crash_stop_button = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect((button_x, button_y_start + button_height + 20), (button_width, button_height)),
+            text="stop",
+            manager=self.ui_manager
+        )
+
+
+        
+        self.crash_stop_button.colours['normal_bg'] = pygame.Color(255, 255, 0)
+        self.crash_stop_button.rebuild()
+        
+        # Скрываем кнопки изначально
+        self.hide_crash_screen()
+
+    def hide_crash_screen(self):
+        """Скрыть элементы экрана Crash"""
+        self.crash_go_button.hide()
+        self.crash_stop_button.hide()
+
+    def show_crash_screen_elements(self):
+        """Показать элементы экрана Crash"""
+        self.crash_go_button.show()
+        self.crash_stop_button.show()
+
     def show_crash_screen(self):
         """Показать экран Crash с квадратом слева"""
         self.hide_main_menu()
@@ -1084,6 +1129,9 @@ class CryptoClicker:
         self.crash_max_stop_time = random.uniform(3.0, 8.0)
         self.crash_current_time = 0.0
         
+        # Показываем элементы экрана Crash
+        self.show_crash_screen_elements()
+        
         self.current_state = GameState.CRASH_SCREEN
 
     def render_crash_screen(self):
@@ -1092,8 +1140,8 @@ class CryptoClicker:
         self.screen.fill((220, 20, 60))
         
         # Рисуем квадрат слева
-        square_size = 200
-        square_x = 50
+        square_size = 300
+        square_x = 75
         square_y = (WINDOW_HEIGHT - square_size) // 2
         pygame.draw.rect(self.screen, (255, 255, 255), (square_x, square_y, square_size, square_size))
         
@@ -1111,14 +1159,9 @@ class CryptoClicker:
         # Добавляем текст "CRASH" в центре
         crash_font = pygame.font.Font(None, 54)
         crash_text = crash_font.render("CRASH", True, (255, 255, 255))
-        crash_rect = crash_text.get_rect(center=(WINDOW_WIDTH//2, WINDOW_HEIGHT//10s))
+        crash_rect = crash_text.get_rect(center=(WINDOW_WIDTH//2, WINDOW_HEIGHT//10))
         self.screen.blit(crash_text, crash_rect)
         
-        # Добавляем подсказку для возврата
-        hint_font = pygame.font.Font(None, 36)
-        hint_text = hint_font.render("", True, (255, 255, 255))
-        hint_rect = hint_text.get_rect(center=(WINDOW_WIDTH//2, WINDOW_HEIGHT//2 + 60))
-        self.screen.blit(hint_text, hint_rect)
 
     def set_trading_symbol(self, symbol: str):
         """Смена активного символа без сброса данных графика"""
@@ -1622,6 +1665,14 @@ class CryptoClicker:
                 
                 elif getattr(event, 'ui_element', None) == self.crash_button:
                     self.show_crash_screen()
+                
+                elif getattr(event, 'ui_element', None) == self.crash_go_button:
+                    # Обработка кнопки "go!"
+                    self.crash_multiplier_active = True
+                
+                elif getattr(event, 'ui_element', None) == self.crash_stop_button:
+                    # Обработка кнопки "stop"
+                    self.crash_multiplier_active = False
                 
                 elif getattr(event, 'ui_element', None) == self.back_button:
                     self.show_main_menu()
