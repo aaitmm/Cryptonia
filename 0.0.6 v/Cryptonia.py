@@ -200,6 +200,11 @@ class CryptoClicker:
         self.crash_max_stop_time = random.uniform(3.0, 8.0)
         self.crash_current_time = 0.0
         
+        # Crash betting variables
+        self.crash_current_bet = 0.0
+        self.crash_bet_amount = 100.0
+        self.crash_has_active_bet = False
+        
         # Creating UI elements
         self.create_main_menu()
         self.create_earn_screen()
@@ -1080,20 +1085,9 @@ class CryptoClicker:
         button_x = 450  # Справа от квадрата (квадрат начинается с x=75 и имеет размер 300)
         button_y_start = 250  # Начальная позиция Y
         
-        # Кнопка "go!"
-        self.crash_go_button = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((button_x, button_y_start), (button_width, button_height)),
-            text="go!",
-            manager=self.ui_manager
-        )
-
-
-        self.crash_go_button.colours['normal_bg'] = pygame.Color(255, 255, 0)
-        self.crash_go_button.rebuild()
-        
-        # Кнопка "stop"
+        # Кнопка "stop" (перемещена на место кнопки "go!")
         self.crash_stop_button = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((button_x, button_y_start + button_height + 20), (button_width, button_height)),
+            relative_rect=pygame.Rect((button_x, button_y_start), (button_width, button_height)),
             text="stop",
             manager=self.ui_manager
         )
@@ -1103,34 +1097,110 @@ class CryptoClicker:
         self.crash_stop_button.colours['normal_bg'] = pygame.Color(255, 255, 0)
         self.crash_stop_button.rebuild()
         
-        # Скрываем кнопки изначально
+        # Кнопка "Bet 100$"
+        self.crash_bet_button = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect((button_x, button_y_start + button_height + 20), (button_width, button_height)),
+            text="Bet 100$",
+            manager=self.ui_manager
+        )
+        
+        self.crash_bet_button.colours['normal_bg'] = pygame.Color(0, 255, 0)
+        self.crash_bet_button.rebuild()
+        
+        # Hide buttons initially
         self.hide_crash_screen()
 
     def hide_crash_screen(self):
-        """Скрыть элементы экрана Crash"""
-        self.crash_go_button.hide()
+        """Hide crash screen elements"""
         self.crash_stop_button.hide()
+        self.crash_bet_button.hide()
+        self.balance_label.hide()
 
     def show_crash_screen_elements(self):
-        """Показать элементы экрана Crash"""
-        self.crash_go_button.show()
+        """Show crash screen elements"""
         self.crash_stop_button.show()
+        self.crash_bet_button.show()
+
+    def handle_crash_bet(self):
+        """Handle betting in crash game"""
+        bet_amount = self.crash_bet_amount
+        
+        # Check if player has enough balance
+        if self.balance < bet_amount:
+            # Not enough balance - show message
+            try:
+                if hasattr(self, 'toast_messages'):
+                    self.toast_messages.append({
+                        'text': f'Insufficient balance! Need ${bet_amount:.2f}',
+                        'timer': 2.0,
+                        'color': (255, 0, 0)
+                    })
+            except Exception:
+                pass
+            return
+        
+        # Place bet
+        self.balance -= bet_amount
+        self.crash_current_bet = bet_amount
+        self.crash_has_active_bet = True
+        
+        # Update balance label
+        self.balance_label.set_text(f"Balance: ${self.balance:.2f}")
+        
+        # Start the game immediately
+        self.reset_crash_game()
+        
+        # Show bet confirmation
+        try:
+            if hasattr(self, 'toast_messages'):
+                self.toast_messages.append({
+                    'text': f'Bet placed: ${bet_amount:.2f} - Game started!',
+                    'timer': 1.5,
+                    'color': (0, 255, 0)
+                })
+        except Exception:
+            pass
+
+    def handle_crash_bet_payout(self):
+        """Handle payout when crash game stops"""
+        if not self.crash_has_active_bet or self.crash_current_bet <= 0:
+            return
+        
+        # Calculate winnings
+        winnings = self.crash_current_bet * self.crash_multiplier
+        
+        # Add winnings to balance
+        self.balance += winnings
+        
+        # Update balance label
+        self.balance_label.set_text(f"Balance: ${self.balance:.2f}")
+        
+        # Show win message
+        try:
+            if hasattr(self, 'toast_messages'):
+                profit = winnings - self.crash_current_bet
+                self.toast_messages.append({
+                    'text': f'Win! ${winnings:.2f} (Profit: ${profit:.2f})',
+                    'timer': 3.0,
+                    'color': (0, 255, 0)
+                })
+        except Exception:
+            pass
+        
+        # Reset bet
+        self.crash_current_bet = 0.0
+        self.crash_has_active_bet = False
 
     def reset_crash_game(self):
         """Reset crash game to initial values"""
-        print("DEBUG: reset_crash_game called")
         self.crash_multiplier = 1.01
         self.crash_multiplier_speed = 0.001
         self.crash_multiplier_active = True
         self.crash_max_stop_time = random.uniform(3.0, 8.0)
         self.crash_current_time = 0.0
-        print(f"DEBUG: crash_multiplier_active = {self.crash_multiplier_active}, multiplier = {self.crash_multiplier}")
 
     def show_crash_screen(self):
         """Show crash screen with square on left"""
-        print("DEBUG: show_crash_screen called")
-        import traceback
-        traceback.print_stack()
         self.hide_main_menu()
         self.hide_earn_screen()
         self.hide_casino_screen()
@@ -1141,6 +1211,9 @@ class CryptoClicker:
         
         # Show crash screen elements
         self.show_crash_screen_elements()
+        
+        # Show balance label like other screens
+        self.balance_label.show()
         
         self.current_state = GameState.CRASH_SCREEN
 
@@ -1673,13 +1746,15 @@ class CryptoClicker:
                 elif getattr(event, 'ui_element', None) == self.crash_button:
                     self.show_crash_screen()
                 
-                elif getattr(event, 'ui_element', None) == self.crash_go_button:
-                    # Обработка кнопки "go!" - начинаем игру сначала
-                    self.reset_crash_game()
-                
                 elif getattr(event, 'ui_element', None) == self.crash_stop_button:
-                    # Обработка кнопки "stop" - останавливаем на текущем значении
+                    # Handle "stop" button - stop at current value
                     self.crash_multiplier_active = False
+                    # Handle bet payout on manual stop
+                    self.handle_crash_bet_payout()
+                
+                elif getattr(event, 'ui_element', None) == self.crash_bet_button:
+                    # Handle "Bet 100$" button
+                    self.handle_crash_bet()
                 
                 elif getattr(event, 'ui_element', None) == self.back_button:
                     self.show_main_menu()
@@ -2309,23 +2384,28 @@ class CryptoClicker:
             
             # Check if should stop randomly
             if self.crash_current_time >= self.crash_max_stop_time:
-                print(f"DEBUG: Auto-stopping at {self.crash_multiplier:.2f}x, time: {self.crash_current_time:.2f}s")
                 self.crash_multiplier_active = False
                 self.crash_current_time = 0.0
+                # Money burns on auto-stop - show crash message
+                if self.crash_has_active_bet and self.crash_current_bet > 0:
+                    try:
+                        if hasattr(self, 'toast_messages'):
+                            self.toast_messages.append({
+                                'text': f'CRASH! You lost ${self.crash_current_bet:.2f}',
+                                'timer': 3.0,
+                                'color': (255, 0, 0)
+                            })
+                    except Exception:
+                        pass
+                    # Reset bet without payout
+                    self.crash_current_bet = 0.0
+                    self.crash_has_active_bet = False
             else:
                 # Accelerate the multiplier
                 self.crash_multiplier_speed *= self.crash_multiplier_acceleration
                 old_multiplier = self.crash_multiplier
                 self.crash_multiplier += self.crash_multiplier_speed * time_delta
                 
-                # Debug print every 10 frames to see if multiplier is changing
-                if hasattr(self, '_debug_frame_count'):
-                    self._debug_frame_count += 1
-                else:
-                    self._debug_frame_count = 0
-                    
-                if self._debug_frame_count % 10 == 0:
-                    print(f"DEBUG: Multiplier changing from {old_multiplier:.4f} to {self.crash_multiplier:.4f}")
                 
                 # Cap at reasonable maximum
                 if self.crash_multiplier > 10.0:
