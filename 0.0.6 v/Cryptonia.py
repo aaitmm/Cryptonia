@@ -1116,21 +1116,30 @@ class CryptoClicker:
         self.crash_go_button.show()
         self.crash_stop_button.show()
 
-    def show_crash_screen(self):
-        """Показать экран Crash с квадратом слева"""
-        self.hide_main_menu()
-        self.hide_earn_screen()
-        self.hide_casino_screen()
-        self.hide_trading_screen()
-        
-        # Reset and start multiplier
+    def reset_crash_game(self):
+        """Reset crash game to initial values"""
+        print("DEBUG: reset_crash_game called")
         self.crash_multiplier = 1.01
         self.crash_multiplier_speed = 0.001
         self.crash_multiplier_active = True
         self.crash_max_stop_time = random.uniform(3.0, 8.0)
         self.crash_current_time = 0.0
+        print(f"DEBUG: crash_multiplier_active = {self.crash_multiplier_active}, multiplier = {self.crash_multiplier}")
+
+    def show_crash_screen(self):
+        """Show crash screen with square on left"""
+        print("DEBUG: show_crash_screen called")
+        import traceback
+        traceback.print_stack()
+        self.hide_main_menu()
+        self.hide_earn_screen()
+        self.hide_casino_screen()
+        self.hide_trading_screen()
         
-        # Показываем элементы экрана Crash
+        # Reset and start multiplier at first entry
+        self.reset_crash_game()
+        
+        # Show crash screen elements
         self.show_crash_screen_elements()
         
         self.current_state = GameState.CRASH_SCREEN
@@ -1147,10 +1156,7 @@ class CryptoClicker:
         pygame.draw.rect(self.screen, (255, 255, 255), (square_x, square_y, square_size, square_size))
         
         # Draw multiplier in center of square (black color)
-        if self.crash_multiplier_active:
-            multiplier_text = f"{self.crash_multiplier:.2f}x"
-        else:
-            multiplier_text = "1.00x"
+        multiplier_text = f"{self.crash_multiplier:.2f}x"
         
         multiplier_font = pygame.font.Font(None, 48)
         multiplier_surface = multiplier_font.render(multiplier_text, True, (0, 0, 0))
@@ -1668,11 +1674,11 @@ class CryptoClicker:
                     self.show_crash_screen()
                 
                 elif getattr(event, 'ui_element', None) == self.crash_go_button:
-                    # Обработка кнопки "go!"
-                    self.crash_multiplier_active = True
+                    # Обработка кнопки "go!" - начинаем игру сначала
+                    self.reset_crash_game()
                 
                 elif getattr(event, 'ui_element', None) == self.crash_stop_button:
-                    # Обработка кнопки "stop"
+                    # Обработка кнопки "stop" - останавливаем на текущем значении
                     self.crash_multiplier_active = False
                 
                 elif getattr(event, 'ui_element', None) == self.back_button:
@@ -2303,12 +2309,23 @@ class CryptoClicker:
             
             # Check if should stop randomly
             if self.crash_current_time >= self.crash_max_stop_time:
+                print(f"DEBUG: Auto-stopping at {self.crash_multiplier:.2f}x, time: {self.crash_current_time:.2f}s")
                 self.crash_multiplier_active = False
                 self.crash_current_time = 0.0
             else:
                 # Accelerate the multiplier
                 self.crash_multiplier_speed *= self.crash_multiplier_acceleration
+                old_multiplier = self.crash_multiplier
                 self.crash_multiplier += self.crash_multiplier_speed * time_delta
+                
+                # Debug print every 10 frames to see if multiplier is changing
+                if hasattr(self, '_debug_frame_count'):
+                    self._debug_frame_count += 1
+                else:
+                    self._debug_frame_count = 0
+                    
+                if self._debug_frame_count % 10 == 0:
+                    print(f"DEBUG: Multiplier changing from {old_multiplier:.4f} to {self.crash_multiplier:.4f}")
                 
                 # Cap at reasonable maximum
                 if self.crash_multiplier > 10.0:
