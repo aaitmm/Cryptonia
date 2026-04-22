@@ -986,6 +986,7 @@ class CryptoClicker:
         self.hide_earn_screen()
         self.hide_casino_screen()
         self.hide_trading_screen()
+        self.hide_crash_screen()
         
         self.earn_button.show()
         self.trading_button.show()
