@@ -1085,7 +1085,7 @@ class CryptoClicker:
         button_x = 450  # Справа от квадрата (квадрат начинается с x=75 и имеет размер 300)
         button_y_start = 250  # Начальная позиция Y
         
-        # Кнопка "stop" (перемещена на место кнопки "go!")
+        # Кнопка "stop"
         self.crash_stop_button = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect((button_x, button_y_start), (button_width, button_height)),
             text="stop",
@@ -1097,14 +1097,31 @@ class CryptoClicker:
         self.crash_stop_button.colours['normal_bg'] = pygame.Color(255, 255, 0)
         self.crash_stop_button.rebuild()
         
-        # Кнопка "Bet 100$"
-        self.crash_bet_button = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((button_x, button_y_start + button_height + 20), (button_width, button_height)),
-            text="Bet!",
+        # Надпись для ставки
+        self.crash_bet_label = pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect((button_x + 140, button_y_start), (200, 30)),
+            text=f"ваша ставка : ${self.crash_bet_amount:.2f}",
             manager=self.ui_manager
         )
         
-        self.crash_bet_button.colours['normal_bg'] = pygame.Color(255,255,0)
+        # Кнопка "+50$"
+        self.crash_bet_plus_50_button = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect((button_x, button_y_start + button_height + 20), (button_width, button_height)),
+            text="+50$",
+            manager=self.ui_manager
+        )
+        
+        self.crash_bet_plus_50_button.colours['normal_bg'] = pygame.Color(100, 149, 237)
+        self.crash_bet_plus_50_button.rebuild()
+        
+        # Кнопка ставки
+        self.crash_bet_button = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect((button_x, button_y_start + 2 * (button_height + 20)), (button_width, button_height)),
+            text="bet",
+            manager=self.ui_manager
+        )
+        
+        self.crash_bet_button.colours['normal_bg'] = pygame.Color(0, 255, 0)
         self.crash_bet_button.rebuild()
         
         # Hide buttons initially
@@ -1113,13 +1130,17 @@ class CryptoClicker:
     def hide_crash_screen(self):
         """Hide crash screen elements"""
         self.crash_stop_button.hide()
+        self.crash_bet_plus_50_button.hide()
         self.crash_bet_button.hide()
+        self.crash_bet_label.hide()
         self.balance_label.hide()
 
     def show_crash_screen_elements(self):
         """Show crash screen elements"""
         self.crash_stop_button.show()
+        self.crash_bet_plus_50_button.show()
         self.crash_bet_button.show()
+        self.crash_bet_label.show()
 
     def handle_crash_bet(self):
         """Handle betting in crash game"""
@@ -1144,11 +1165,11 @@ class CryptoClicker:
         self.crash_current_bet = bet_amount
         self.crash_has_active_bet = True
         
+        # Start the game
+        self.reset_crash_game()
+        
         # Update balance label
         self.balance_label.set_text(f"Balance: ${self.balance:.2f}")
-        
-        # Start the game immediately
-        self.reset_crash_game()
         
         # Show bet confirmation
         try:
@@ -1191,6 +1212,24 @@ class CryptoClicker:
         self.crash_current_bet = 0.0
         self.crash_has_active_bet = False
 
+    def handle_crash_bet_plus_50(self):
+        """Handle +50$ button - increase bet amount by 50"""
+        self.crash_bet_amount += 50.0
+        
+        # Update bet label to show new amount
+        self.crash_bet_label.set_text(f"ваша ставка : ${self.crash_bet_amount:.2f}")
+        
+        # Show confirmation message
+        try:
+            if hasattr(self, 'toast_messages'):
+                self.toast_messages.append({
+                    'text': f'Ставка увеличена до ${self.crash_bet_amount:.2f}',
+                    'timer': 1.0,
+                    'color': (100, 149, 237)
+                })
+        except Exception:
+            pass
+
     def reset_crash_game(self):
         """Reset crash game to initial values"""
         self.crash_multiplier = 1.01
@@ -1206,8 +1245,10 @@ class CryptoClicker:
         self.hide_casino_screen()
         self.hide_trading_screen()
         
-        # Reset and start multiplier at first entry
-        self.reset_crash_game()
+        # Reset game but don't start it automatically
+        self.crash_multiplier_active = False
+        self.crash_multiplier = 1.01
+        self.crash_current_time = 0.0
         
         # Show crash screen elements
         self.show_crash_screen_elements()
@@ -1753,8 +1794,12 @@ class CryptoClicker:
                     self.handle_crash_bet_payout()
                 
                 elif getattr(event, 'ui_element', None) == self.crash_bet_button:
-                    # Handle "Bet 100$" button
+                    # Handle "сделать ставку" button
                     self.handle_crash_bet()
+                
+                elif getattr(event, 'ui_element', None) == self.crash_bet_plus_50_button:
+                    # Handle "+50$" button - increase bet by 50
+                    self.handle_crash_bet_plus_50()
                 
                 elif getattr(event, 'ui_element', None) == self.back_button:
                     self.show_main_menu()
