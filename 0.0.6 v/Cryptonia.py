@@ -1100,11 +1100,11 @@ class CryptoClicker:
         # Кнопка "Bet 100$"
         self.crash_bet_button = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect((button_x, button_y_start + button_height + 20), (button_width, button_height)),
-            text="Bet 100$",
+            text="Bet!",
             manager=self.ui_manager
         )
         
-        self.crash_bet_button.colours['normal_bg'] = pygame.Color(0, 255, 0)
+        self.crash_bet_button.colours['normal_bg'] = pygame.Color(255,255,0)
         self.crash_bet_button.rebuild()
         
         # Hide buttons initially
