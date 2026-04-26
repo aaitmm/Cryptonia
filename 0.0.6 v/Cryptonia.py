@@ -1230,12 +1230,41 @@ class CryptoClicker:
         except Exception:
             pass
 
+    def get_crash_chance(self, multiplier):
+        """Get crash chance based on current multiplier"""
+        # Вероятности краша для разных множителей (чем выше икс, тем меньше шанс)
+        if multiplier < 1.1:
+            return 0.0  # Не крашим сразу
+        elif multiplier < 1.5:
+            return 0.50  # 50% шанс на 1.5x
+        elif multiplier < 2.0:
+            return 0.40  # 40% шанс на 2x
+        elif multiplier < 3.0:
+            return 0.30  # 30% шанс на 3x
+        elif multiplier < 5.0:
+            return 0.25  # 25% шанс на 5x
+        elif multiplier < 10.0:
+            return 0.20  # 20% шанс на 10x
+        elif multiplier < 25.0:
+            return 0.15  # 15% шанс на 25x
+        elif multiplier < 50.0:
+            return 0.10  # 10% шанс на 50x
+        elif multiplier < 100.0:
+            return 0.08  # 8% шанс на 100x
+        elif multiplier < 250.0:
+            return 0.05  # 5% шанс на 250x
+        elif multiplier < 500.0:
+            return 0.03  # 3% шанс на 500x
+        elif multiplier < 1000.0:
+            return 0.02  # 2% шанс на 1000x
+        else:
+            return 0.01  # 1% шанс выше 1000x
+
     def reset_crash_game(self):
         """Reset crash game to initial values"""
         self.crash_multiplier = 1.01
         self.crash_multiplier_speed = 0.001
         self.crash_multiplier_active = True
-        self.crash_max_stop_time = random.uniform(3.0, 8.0)
         self.crash_current_time = 0.0
 
     def show_crash_screen(self):
@@ -2427,8 +2456,9 @@ class CryptoClicker:
         if self.current_state == GameState.CRASH_SCREEN and self.crash_multiplier_active:
             self.crash_current_time += time_delta
             
-            # Check if should stop randomly
-            if self.crash_current_time >= self.crash_max_stop_time:
+            # Check if should crash based on multiplier probabilities
+            crash_chance = self.get_crash_chance(self.crash_multiplier)
+            if random.random() < crash_chance * time_delta:  # Adjust for frame rate
                 self.crash_multiplier_active = False
                 self.crash_current_time = 0.0
                 # Money burns on auto-stop - show crash message
@@ -2453,8 +2483,8 @@ class CryptoClicker:
                 
                 
                 # Cap at reasonable maximum
-                if self.crash_multiplier > 10.0:
-                    self.crash_multiplier = 10.0
+                if self.crash_multiplier > 1000.0:
+                    self.crash_multiplier = 1000.0
         # Обновление графиков — в Trading обновляем сразу оба символа,
         # чтобы неактивный тоже продолжал рисовать курс
         if self.current_state == GameState.TRADING_SCREEN:
